@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -100,6 +101,7 @@
       <div>
         <h1 id="viewTitle">Painel Geral</h1>
         <p id="viewSubtitle" class="muted">Resumo das vendas de docinhos da Confeitaria da Gabi</p>
+        <span id="syncStatus" class="sync-pill sync-syncing"><span class="dot"></span> Sincronizando...</span>
       </div>
       <button class="primary-btn" id="btnNovaVenda"><svg class="icon"><use href="#icon-plus-circle"></use></svg> Nova encomenda</button>
     </header>

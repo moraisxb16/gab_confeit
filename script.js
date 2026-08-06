@@ -1,40 +1,76 @@
-/* ============ Doce Controle — Gestão de Vendas de Docinhos ============ */
+/* ============ Confeitaria da Gabi — Gestão de Vendas de Docinhos ============ */
+/* Dados sincronizados em tempo real via Supabase — mesma base para todos os dispositivos. */
 
-const STORAGE_KEY = 'doceControleDados';
+const SUPABASE_URL = 'https://ixbanonhvcwjvnkclaeb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_DKhObLXkviatUEUZNq5GGA_ftrDWk71';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let dados = {
   clientes: [],   // {id, nome, telefone}
   produtos: [],   // {id, nome, preco}
-  vendas: []      // {id, clienteId, data, itens:[{produtoId,nome,preco,qtd}], total, pago, obs}
+  vendas: []      // {id, clienteId, data, itens:[{produtoId,nome,preco,qtd}], pago, obs, criadoEm}
 };
 
-function gerarId(){
-  return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+function setSyncStatus(estado){
+  const el = document.getElementById('syncStatus');
+  const textos = { syncing: 'Sincronizando...', online: 'Sincronizado', error: 'Sem conexão' };
+  el.className = 'sync-pill sync-' + estado;
+  el.innerHTML = `<span class="dot"></span> ${textos[estado]}`;
 }
 
-function salvar(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+async function carregarDoServidor(){
+  const [rc, rp, rv] = await Promise.all([
+    sb.from('clientes').select('*').order('criado_em'),
+    sb.from('produtos').select('*').order('criado_em'),
+    sb.from('vendas').select('*').order('criado_em')
+  ]);
+  if(rc.error) throw rc.error;
+  if(rp.error) throw rp.error;
+  if(rv.error) throw rv.error;
+
+  dados.clientes = rc.data.map(c=>({ id:c.id, nome:c.nome, telefone:c.telefone||'' }));
+  dados.produtos = rp.data.map(p=>({ id:p.id, nome:p.nome, preco:Number(p.preco) }));
+  dados.vendas = rv.data.map(v=>({
+    id:v.id, clienteId:v.cliente_id, data:v.data,
+    itens: v.itens||[], pago:Number(v.pago)||0, obs:v.obs||'', criadoEm:Number(v.criado_em)
+  }));
 }
 
-function carregar(){
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if(raw){
+let debounceRecarregar = null;
+function agendarRecarregar(){
+  clearTimeout(debounceRecarregar);
+  debounceRecarregar = setTimeout(async ()=>{
     try{
-      const parsed = JSON.parse(raw);
-      dados.clientes = parsed.clientes || [];
-      dados.produtos = parsed.produtos || [];
-      dados.vendas = parsed.vendas || [];
-    }catch(e){ console.error('Erro ao carregar dados', e); }
+      await carregarDoServidor();
+      setSyncStatus('online');
+      renderAll();
+    }catch(e){
+      console.error(e);
+      setSyncStatus('error');
+    }
+  }, 300);
+}
+
+function assinarRealtime(){
+  sb.channel('confeitaria-gabi-sync')
+    .on('postgres_changes', { event:'*', schema:'public', table:'clientes' }, agendarRecarregar)
+    .on('postgres_changes', { event:'*', schema:'public', table:'produtos' }, agendarRecarregar)
+    .on('postgres_changes', { event:'*', schema:'public', table:'vendas' }, agendarRecarregar)
+    .subscribe();
+}
+
+async function iniciar(){
+  setSyncStatus('syncing');
+  try{
+    await carregarDoServidor();
+    setSyncStatus('online');
+  }catch(e){
+    console.error(e);
+    setSyncStatus('error');
+    toast('Não foi possível conectar ao servidor. Verifique sua internet.');
   }
-  if(dados.produtos.length === 0){
-    dados.produtos = [
-      { id: gerarId(), nome: 'Brigadeiro', preco: 2.5 },
-      { id: gerarId(), nome: 'Beijinho', preco: 2.5 },
-      { id: gerarId(), nome: 'Bombom de morango', preco: 4 },
-      { id: gerarId(), nome: 'Cookie', preco: 5 }
-    ];
-    salvar();
-  }
+  renderAll();
+  assinarRealtime();
 }
 
 function formatarMoeda(v){
@@ -491,7 +527,7 @@ function abrirModalVenda(){
 
 document.getElementById('btnNovaVenda').addEventListener('click', abrirModalVenda);
 
-document.getElementById('formVenda').addEventListener('submit', (e)=>{
+document.getElementById('formVenda').addEventListener('submit', async (e)=>{
   e.preventDefault();
   const nome = document.getElementById('inputClienteNome').value.trim();
   const telefone = document.getElementById('inputClienteTelefone').value.trim();
@@ -512,28 +548,43 @@ document.getElementById('formVenda').addEventListener('submit', (e)=>{
     return { produtoId: produto.id, nome: produto.nome, preco: produto.preco, qtd };
   });
 
-  let cliente = dados.clientes.find(c=> c.nome.toLowerCase()===nome.toLowerCase());
-  if(!cliente){
-    cliente = { id: gerarId(), nome, telefone };
-    dados.clientes.push(cliente);
-  }else if(telefone){
-    cliente.telefone = telefone;
+  const btnSalvar = e.target.querySelector('button[type="submit"]');
+  btnSalvar.disabled = true;
+  try{
+    let cliente = dados.clientes.find(c=> c.nome.toLowerCase()===nome.toLowerCase());
+    let clienteId;
+    if(!cliente){
+      const { data:novo, error } = await sb.from('clientes').insert({ nome, telefone: telefone||null }).select().single();
+      if(error) throw error;
+      clienteId = novo.id;
+      dados.clientes.push({ id:novo.id, nome:novo.nome, telefone:novo.telefone||'' });
+    }else{
+      clienteId = cliente.id;
+      if(telefone && telefone!==cliente.telefone){
+        const { error } = await sb.from('clientes').update({ telefone }).eq('id', clienteId);
+        if(error) throw error;
+        cliente.telefone = telefone;
+      }
+    }
+
+    const { data:novaVenda, error:errVenda } = await sb.from('vendas').insert({
+      cliente_id: clienteId, data, itens, pago: valorPago, obs: obs||null, criado_em: Date.now()
+    }).select().single();
+    if(errVenda) throw errVenda;
+
+    dados.vendas.push({
+      id: novaVenda.id, clienteId, data, itens, pago: valorPago, obs, criadoEm: Number(novaVenda.criado_em)
+    });
+
+    modalVenda.classList.add('hidden');
+    toast('Encomenda registrada com sucesso!');
+    renderAll();
+  }catch(err){
+    console.error(err);
+    toast('Erro ao salvar a encomenda. Verifique sua internet.');
+  }finally{
+    btnSalvar.disabled = false;
   }
-
-  dados.vendas.push({
-    id: gerarId(),
-    clienteId: cliente.id,
-    data,
-    itens,
-    pago: valorPago,
-    obs,
-    criadoEm: Date.now()
-  });
-
-  salvar();
-  modalVenda.classList.add('hidden');
-  toast('Encomenda registrada com sucesso!');
-  renderAll();
 });
 
 /* ============ Modal: Novo Produto ============ */
@@ -544,16 +595,22 @@ document.getElementById('btnNovoProduto').addEventListener('click', ()=>{
   modalProduto.classList.remove('hidden');
 });
 
-document.getElementById('formProduto').addEventListener('submit', (e)=>{
+document.getElementById('formProduto').addEventListener('submit', async (e)=>{
   e.preventDefault();
   const nome = document.getElementById('inputProdutoNome').value.trim();
   const preco = parseFloat(document.getElementById('inputProdutoPreco').value);
   if(!nome || isNaN(preco)){ toast('Preencha nome e preço.'); return; }
-  dados.produtos.push({ id: gerarId(), nome, preco });
-  salvar();
-  modalProduto.classList.add('hidden');
-  toast('Docinho cadastrado!');
-  renderAll();
+  try{
+    const { data:novo, error } = await sb.from('produtos').insert({ nome, preco }).select().single();
+    if(error) throw error;
+    dados.produtos.push({ id:novo.id, nome:novo.nome, preco:Number(novo.preco) });
+    modalProduto.classList.add('hidden');
+    toast('Docinho cadastrado!');
+    renderAll();
+  }catch(err){
+    console.error(err);
+    toast('Erro ao cadastrar o docinho.');
+  }
 });
 
 /* ============ Modal: Pagamento ============ */
@@ -586,37 +643,51 @@ function abrirModalPagamento(tipo, id, mes='todos'){
   modalPagamento.classList.remove('hidden');
 }
 
-document.getElementById('formPagamento').addEventListener('submit', (e)=>{
+document.getElementById('formPagamento').addEventListener('submit', async (e)=>{
   e.preventDefault();
   let valor = parseFloat(document.getElementById('inputPagamentoValor').value);
   if(isNaN(valor) || valor<=0){ toast('Informe um valor válido.'); return; }
 
-  if(pagamentoContexto.tipo==='venda'){
-    const venda = dados.vendas.find(v=>v.id===pagamentoContexto.id);
-    venda.pago = (venda.pago||0) + valor;
-  }else{
-    // Aplica pagamento nas encomendas pendentes do cliente (e do mês filtrado, se houver), da mais antiga pra mais nova
-    const vendasPendentes = dados.vendas
-      .filter(v=>
-        v.clienteId===pagamentoContexto.id &&
-        statusVenda(v)!=='pago' &&
-        (pagamentoContexto.mes==='todos' || chaveMes(v.data)===pagamentoContexto.mes)
-      )
-      .sort((a,b)=>(a.criadoEm||0)-(b.criadoEm||0));
+  const btnConfirmar = e.target.querySelector('button[type="submit"]');
+  btnConfirmar.disabled = true;
+  try{
+    if(pagamentoContexto.tipo==='venda'){
+      const venda = dados.vendas.find(v=>v.id===pagamentoContexto.id);
+      const novoPago = (venda.pago||0) + valor;
+      const { error } = await sb.from('vendas').update({ pago: novoPago }).eq('id', venda.id);
+      if(error) throw error;
+      venda.pago = novoPago;
+    }else{
+      // Aplica pagamento nas encomendas pendentes do cliente (e do mês filtrado, se houver), da mais antiga pra mais nova
+      const vendasPendentes = dados.vendas
+        .filter(v=>
+          v.clienteId===pagamentoContexto.id &&
+          statusVenda(v)!=='pago' &&
+          (pagamentoContexto.mes==='todos' || chaveMes(v.data)===pagamentoContexto.mes)
+        )
+        .sort((a,b)=>(a.criadoEm||0)-(b.criadoEm||0));
 
-    for(const v of vendasPendentes){
-      if(valor<=0) break;
-      const restante = totalVenda(v) - (v.pago||0);
-      const aplica = Math.min(restante, valor);
-      v.pago = (v.pago||0) + aplica;
-      valor -= aplica;
+      for(const v of vendasPendentes){
+        if(valor<=0) break;
+        const restante = totalVenda(v) - (v.pago||0);
+        const aplica = Math.min(restante, valor);
+        const novoPago = (v.pago||0) + aplica;
+        const { error } = await sb.from('vendas').update({ pago: novoPago }).eq('id', v.id);
+        if(error) throw error;
+        v.pago = novoPago;
+        valor -= aplica;
+      }
     }
-  }
 
-  salvar();
-  modalPagamento.classList.add('hidden');
-  toast('Pagamento registrado!');
-  renderAll();
+    modalPagamento.classList.add('hidden');
+    toast('Pagamento registrado!');
+    renderAll();
+  }catch(err){
+    console.error(err);
+    toast('Erro ao registrar o pagamento.');
+  }finally{
+    btnConfirmar.disabled = false;
+  }
 });
 
 /* ============ Eventos globais (delegação) ============ */
@@ -640,20 +711,26 @@ document.addEventListener('click', (e)=>{
   }
   const btnExcluirVenda = e.target.closest('[data-excluir-venda]');
   if(btnExcluirVenda){
+    const idVenda = btnExcluirVenda.dataset.excluirVenda;
     if(confirm('Excluir esta encomenda? Essa ação não pode ser desfeita.')){
-      dados.vendas = dados.vendas.filter(v=>v.id!==btnExcluirVenda.dataset.excluirVenda);
-      salvar();
-      toast('Encomenda excluída.');
-      renderAll();
+      sb.from('vendas').delete().eq('id', idVenda).then(({error})=>{
+        if(error){ console.error(error); toast('Erro ao excluir a encomenda.'); return; }
+        dados.vendas = dados.vendas.filter(v=>v.id!==idVenda);
+        toast('Encomenda excluída.');
+        renderAll();
+      });
     }
   }
   const btnExcluirProduto = e.target.closest('[data-excluir-produto]');
   if(btnExcluirProduto){
+    const idProduto = btnExcluirProduto.dataset.excluirProduto;
     if(confirm('Excluir este docinho do catálogo?')){
-      dados.produtos = dados.produtos.filter(p=>p.id!==btnExcluirProduto.dataset.excluirProduto);
-      salvar();
-      toast('Docinho excluído.');
-      renderAll();
+      sb.from('produtos').delete().eq('id', idProduto).then(({error})=>{
+        if(error){ console.error(error); toast('Erro ao excluir o docinho.'); return; }
+        dados.produtos = dados.produtos.filter(p=>p.id!==idProduto);
+        toast('Docinho excluído.');
+        renderAll();
+      });
     }
   }
   const btnVerCliente = e.target.closest('[data-ver-cliente]');
@@ -697,18 +774,54 @@ document.getElementById('fileImport').addEventListener('change', (e)=>{
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = (ev)=>{
+  reader.onload = async (ev)=>{
     try{
       const parsed = JSON.parse(ev.target.result);
       if(!parsed.clientes || !parsed.produtos || !parsed.vendas) throw new Error('Formato inválido');
-      if(confirm('Importar este backup vai substituir todos os dados atuais. Continuar?')){
-        dados = parsed;
-        salvar();
-        renderAll();
-        toast('Backup importado com sucesso!');
+      if(!confirm('Importar este backup vai substituir os dados de TODOS os dispositivos conectados. Continuar?')){
+        e.target.value = '';
+        return;
       }
+
+      toast('Importando backup...');
+      const NULO = '00000000-0000-0000-0000-000000000000';
+      await sb.from('vendas').delete().neq('id', NULO);
+      await sb.from('clientes').delete().neq('id', NULO);
+      await sb.from('produtos').delete().neq('id', NULO);
+
+      const mapaProdutos = {};
+      for(const p of parsed.produtos){
+        const { data:novo, error } = await sb.from('produtos').insert({ nome:p.nome, preco:p.preco }).select().single();
+        if(error) throw error;
+        mapaProdutos[p.id] = novo.id;
+      }
+
+      const mapaClientes = {};
+      for(const c of parsed.clientes){
+        const { data:novo, error } = await sb.from('clientes').insert({ nome:c.nome, telefone:c.telefone||null }).select().single();
+        if(error) throw error;
+        mapaClientes[c.id] = novo.id;
+      }
+
+      for(const v of parsed.vendas){
+        const itensRemapeados = (v.itens||[]).map(i=>({ ...i, produtoId: mapaProdutos[i.produtoId] || i.produtoId }));
+        const { error } = await sb.from('vendas').insert({
+          cliente_id: mapaClientes[v.clienteId],
+          data: v.data,
+          itens: itensRemapeados,
+          pago: v.pago||0,
+          obs: v.obs||null,
+          criado_em: v.criadoEm || Date.now()
+        });
+        if(error) throw error;
+      }
+
+      await carregarDoServidor();
+      renderAll();
+      toast('Backup importado com sucesso!');
     }catch(err){
-      toast('Arquivo inválido. Verifique o backup.');
+      console.error(err);
+      toast('Erro ao importar backup. Verifique o arquivo.');
     }
     e.target.value = '';
   };
@@ -717,5 +830,4 @@ document.getElementById('fileImport').addEventListener('change', (e)=>{
 
 /* ============ Inicialização ============ */
 
-carregar();
-renderAll();
+iniciar();

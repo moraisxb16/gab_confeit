@@ -153,6 +153,25 @@ body{
   flex-wrap:wrap;
   gap: 12px;
 }
+.sync-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size: 11.5px;
+  font-weight:700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  margin-top: 8px;
+}
+.sync-pill .dot{ width:7px; height:7px; border-radius:50%; background: currentColor; flex-shrink:0; }
+.sync-syncing{ background: var(--gold-tint); color:#8a6a1f; }
+.sync-syncing .dot{ animation: pulse-dot 1s infinite; }
+.sync-online{ background: var(--green-bg); color: var(--green); }
+.sync-error{ background: var(--red-bg); color: var(--red); }
+@keyframes pulse-dot{ 0%,100%{ opacity:1; } 50%{ opacity:.3; } }
+
 .topbar h1{
   margin:0;
   font-family: var(--font-display);
