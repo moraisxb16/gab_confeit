@@ -428,7 +428,10 @@ function renderProdutos(){
         <td data-label="Preço unitário">${formatarMoeda(p.preco)}</td>
         <td data-label="Unidades vendidas">${unidades}</td>
         <td data-label="Total gerado">${formatarMoeda(totalGerado)}</td>
-        <td data-label="Ações"><button class="icon-btn" data-excluir-produto="${p.id}" title="Excluir">${icon('trash')}</button></td>
+        <td data-label="Ações">
+          <button class="icon-btn" data-editar-produto="${p.id}" title="Editar">${icon('edit')}</button>
+          <button class="icon-btn" data-excluir-produto="${p.id}" title="Excluir">${icon('trash')}</button>
+        </td>
       </tr>`;
   });
 }
@@ -590,7 +593,12 @@ document.getElementById('formVenda').addEventListener('submit', async (e)=>{
 /* ============ Modal: Novo Produto ============ */
 
 const modalProduto = document.getElementById('modalProduto');
+const modalProdutoTitulo = document.querySelector('#modalProduto .modal-header h3');
+let produtoEditandoId = null;
+
 document.getElementById('btnNovoProduto').addEventListener('click', ()=>{
+  produtoEditandoId = null;
+  modalProdutoTitulo.textContent = 'Novo docinho';
   document.getElementById('formProduto').reset();
   modalProduto.classList.remove('hidden');
 });
@@ -601,15 +609,23 @@ document.getElementById('formProduto').addEventListener('submit', async (e)=>{
   const preco = parseFloat(document.getElementById('inputProdutoPreco').value);
   if(!nome || isNaN(preco)){ toast('Preencha nome e preço.'); return; }
   try{
-    const { data:novo, error } = await sb.from('produtos').insert({ nome, preco }).select().single();
-    if(error) throw error;
-    dados.produtos.push({ id:novo.id, nome:novo.nome, preco:Number(novo.preco) });
+    if(produtoEditandoId){
+      const { data:atualizado, error } = await sb.from('produtos').update({ nome, preco }).eq('id', produtoEditandoId).select().single();
+      if(error) throw error;
+      const p = dados.produtos.find(p=>p.id===produtoEditandoId);
+      if(p){ p.nome = atualizado.nome; p.preco = Number(atualizado.preco); }
+      toast('Docinho atualizado!');
+    }else{
+      const { data:novo, error } = await sb.from('produtos').insert({ nome, preco }).select().single();
+      if(error) throw error;
+      dados.produtos.push({ id:novo.id, nome:novo.nome, preco:Number(novo.preco) });
+      toast('Docinho cadastrado!');
+    }
     modalProduto.classList.add('hidden');
-    toast('Docinho cadastrado!');
     renderAll();
   }catch(err){
     console.error(err);
-    toast('Erro ao cadastrar o docinho.');
+    toast('Erro ao salvar o docinho.');
   }
 });
 
@@ -719,6 +735,17 @@ document.addEventListener('click', (e)=>{
         toast('Encomenda excluída.');
         renderAll();
       });
+    }
+  }
+  const btnEditarProduto = e.target.closest('[data-editar-produto]');
+  if(btnEditarProduto){
+    const produto = dados.produtos.find(p=>p.id===btnEditarProduto.dataset.editarProduto);
+    if(produto){
+      produtoEditandoId = produto.id;
+      modalProdutoTitulo.textContent = 'Editar docinho';
+      document.getElementById('inputProdutoNome').value = produto.nome;
+      document.getElementById('inputProdutoPreco').value = produto.preco;
+      modalProduto.classList.remove('hidden');
     }
   }
   const btnExcluirProduto = e.target.closest('[data-excluir-produto]');
