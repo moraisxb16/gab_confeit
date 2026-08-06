@@ -218,13 +218,13 @@ function renderClientes(filtro=''){
     const status = saldo <= 0.001 ? '<span class="badge badge-pago">Em dia</span>' : '<span class="badge badge-pendente">Deve</span>';
     tbody.innerHTML += `
       <tr>
-        <td><strong>${escapeHtml(c.nome)}</strong></td>
-        <td>${escapeHtml(c.telefone||'—')}</td>
-        <td>${formatarMoeda(comprado)}</td>
-        <td>${formatarMoeda(pago)}</td>
-        <td style="color:${saldo>0.001?'var(--red)':'var(--green)'}; font-weight:700;">${formatarMoeda(saldo)}</td>
-        <td>${status}</td>
-        <td><button class="icon-btn" data-ver-cliente="${c.id}" title="Ver encomendas">${icon('search')}</button></td>
+        <td data-label="Nome"><strong>${escapeHtml(c.nome)}</strong></td>
+        <td data-label="Telefone">${escapeHtml(c.telefone||'—')}</td>
+        <td data-label="Total comprado">${formatarMoeda(comprado)}</td>
+        <td data-label="Total pago">${formatarMoeda(pago)}</td>
+        <td data-label="Saldo devedor" style="color:${saldo>0.001?'var(--red)':'var(--green)'}; font-weight:700;">${formatarMoeda(saldo)}</td>
+        <td data-label="Status">${status}</td>
+        <td data-label="Ações"><button class="icon-btn" data-ver-cliente="${c.id}" title="Ver encomendas">${icon('search')}</button></td>
       </tr>`;
   });
 }
@@ -320,14 +320,14 @@ function renderVendas(){
 
       tbody.innerHTML += `
         <tr>
-          <td>${formatarData(v.data)}</td>
-          <td><strong>${escapeHtml(cliente ? cliente.nome : '—')}</strong></td>
-          <td>${escapeHtml(produtosTxt)}</td>
-          <td>${qtdTotal}</td>
-          <td>${formatarMoeda(total)}</td>
-          <td>${formatarMoeda(v.pago||0)}</td>
-          <td><span class="badge ${badge}">${label}</span></td>
-          <td>
+          <td data-label="Data">${formatarData(v.data)}</td>
+          <td data-label="Cliente"><strong>${escapeHtml(cliente ? cliente.nome : '—')}</strong></td>
+          <td data-label="Docinho(s)">${escapeHtml(produtosTxt)}</td>
+          <td data-label="Qtd">${qtdTotal}</td>
+          <td data-label="Valor">${formatarMoeda(total)}</td>
+          <td data-label="Pago">${formatarMoeda(v.pago||0)}</td>
+          <td data-label="Status"><span class="badge ${badge}">${label}</span></td>
+          <td data-label="Ações">
             ${st!=='pago' ? `<button class="icon-btn" data-pagar="${v.id}" title="Registrar pagamento">${icon('check-circle')}</button>` : ''}
             <button class="icon-btn" data-excluir-venda="${v.id}" title="Excluir">${icon('trash')}</button>
           </td>
@@ -363,11 +363,11 @@ function renderPendencias(){
   porCliente.forEach(d=>{
     tbody.innerHTML += `
       <tr>
-        <td><strong>${escapeHtml(d.cliente.nome)}</strong></td>
-        <td>${escapeHtml(d.cliente.telefone||'—')}</td>
-        <td>${d.qtd}</td>
-        <td style="color:var(--red); font-weight:700;">${formatarMoeda(d.saldo)}</td>
-        <td><button class="secondary-btn" data-cobrar="${d.cliente.id}" data-mes="${filtroMes}">${icon('check-circle')} Registrar pagamento</button></td>
+        <td data-label="Cliente"><strong>${escapeHtml(d.cliente.nome)}</strong></td>
+        <td data-label="Telefone">${escapeHtml(d.cliente.telefone||'—')}</td>
+        <td data-label="Encomendas pendentes">${d.qtd}</td>
+        <td data-label="Valor devido" style="color:var(--red); font-weight:700;">${formatarMoeda(d.saldo)}</td>
+        <td data-label="Ações"><button class="secondary-btn" data-cobrar="${d.cliente.id}" data-mes="${filtroMes}">${icon('check-circle')} Registrar pagamento</button></td>
       </tr>`;
   });
 }
@@ -388,11 +388,11 @@ function renderProdutos(){
     });
     tbody.innerHTML += `
       <tr>
-        <td><strong>${escapeHtml(p.nome)}</strong></td>
-        <td>${formatarMoeda(p.preco)}</td>
-        <td>${unidades}</td>
-        <td>${formatarMoeda(totalGerado)}</td>
-        <td><button class="icon-btn" data-excluir-produto="${p.id}" title="Excluir">${icon('trash')}</button></td>
+        <td data-label="Docinho"><strong>${escapeHtml(p.nome)}</strong></td>
+        <td data-label="Preço unitário">${formatarMoeda(p.preco)}</td>
+        <td data-label="Unidades vendidas">${unidades}</td>
+        <td data-label="Total gerado">${formatarMoeda(totalGerado)}</td>
+        <td data-label="Ações"><button class="icon-btn" data-excluir-produto="${p.id}" title="Excluir">${icon('trash')}</button></td>
       </tr>`;
   });
 }

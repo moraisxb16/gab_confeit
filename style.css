@@ -542,14 +542,113 @@ body{
 }
 .toast.show{ opacity:1; transform: translateY(0); }
 
-/* ---------- Responsive ---------- */
+/* ---------- Responsive: tablet / sidebar horizontal ---------- */
 @media (max-width: 780px){
   .app-shell{ flex-direction:column; }
-  .sidebar{ width:100%; flex-direction:row; overflow-x:auto; align-items:center; padding: 12px; border-right:none; border-bottom: 3px solid var(--caramel-dark); }
-  .brand{ border-bottom:none; padding:0 10px; margin-bottom:0; }
+  .sidebar{
+    width:100%;
+    flex-direction:row;
+    overflow-x:auto;
+    -webkit-overflow-scrolling: touch;
+    align-items:center;
+    padding: 10px 12px;
+    border-right:none;
+    border-bottom: 3px solid var(--caramel-dark);
+  }
+  .brand{ border-bottom:none; padding:0 10px; margin-bottom:0; flex-shrink:0; }
   .brand-text strong{ font-size: 13px; }
-  .nav{ flex-direction:row; }
-  .nav-item{ white-space: nowrap; }
+  .nav{ flex-direction:row; flex-shrink:0; }
+  .nav-item{ white-space: nowrap; flex-shrink:0; }
   .sidebar-footer{ display:none; }
   .main{ padding: 20px 16px 60px; }
+
+  .panel-grid{ grid-template-columns: 1fr; }
+}
+
+/* ---------- Responsive: celular ---------- */
+@media (max-width: 640px){
+  .main{ padding: 16px 12px 50px; }
+
+  .brand-text small{ display:none; }
+  .brand-mark{ width:38px; height:38px; font-size:17px; }
+  .nav-item{ padding: 9px 10px; font-size: 12px; gap: 7px; }
+
+  .topbar{ flex-direction: column; align-items: stretch; }
+  .topbar h1{ font-size: 21px; }
+  .primary-btn{ justify-content:center; width:100%; }
+
+  .cards-grid{ gap: 12px; }
+  .stat-card{ padding: 16px; }
+  .stat-value{ font-size: 23px; }
+
+  .panel{ padding: 16px; }
+  .panel-header{ flex-direction: column; align-items: stretch; }
+  .panel-header h3{ font-size: 15px; }
+  .header-actions{ flex-direction: column; align-items: stretch; width: 100%; }
+  .panel-header input.search-input,
+  .panel-header select.select-input,
+  .header-actions input,
+  .header-actions select{ width: 100%; }
+  .pill{ align-self: flex-start; }
+
+  /* Tabelas em formato de cartão: cada linha vira um bloco, sem rolagem horizontal */
+  .table-wrap{ overflow-x: visible; }
+  .data-table thead{ display:none; }
+  .data-table, .data-table tbody{ display:block; width:100%; }
+  .data-table tr:not(.month-row){
+    display:block;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px 4px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .data-table tr:not(.month-row):hover{ background: var(--card-bg); }
+  .data-table td{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: normal;
+    text-align: right;
+  }
+  .data-table tr td:last-child{ border-bottom: none; }
+  .data-table td[data-label]::before{
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    color: var(--ink-muted);
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .data-table td[data-label=""]::before{ content: none; }
+  .data-table td:not([data-label]){ display:block; text-align:left; }
+  .data-table td.empty-state{ text-align:center; }
+
+  .month-row-inner{ margin-top: 10px; }
+
+  /* Item de docinho na encomenda: empilha em vez de espremer 4 colunas */
+  .item-linha{
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas:
+      "produto produto produto"
+      "qtd subtotal remove";
+  }
+  .item-linha .sel-produto{ grid-area: produto; }
+  .item-linha .inp-qtd{ grid-area: qtd; }
+  .item-linha .inp-subtotal{ grid-area: subtotal; }
+  .item-linha .item-remove{ grid-area: remove; width: 100%; }
+
+  .modal-overlay{ padding: 12px; }
+  .modal-header{ padding: 14px 16px; }
+  .modal-body{ padding: 16px; }
+  .modal-actions{ flex-direction: column-reverse; }
+  .modal-actions button{ width: 100%; justify-content:center; }
+
+  .toast{ left: 12px; right: 12px; bottom: 14px; max-width: none; text-align:center; }
 }
