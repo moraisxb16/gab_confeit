@@ -142,7 +142,18 @@ const titles = {
   produtos: ['Docinhos', 'Catálogo de docinhos e preços']
 };
 
+const textoBotaoPrincipal = {
+  dashboard: 'Nova encomenda',
+  clientes: 'Novo cliente',
+  vendas: 'Nova encomenda',
+  pendencias: 'Nova encomenda',
+  produtos: 'Novo docinho'
+};
+
+let viewAtual = 'dashboard';
+
 function irPara(view){
+  viewAtual = view;
   views.forEach(v=>{
     document.getElementById('view-'+v).classList.toggle('hidden', v!==view);
   });
@@ -151,6 +162,7 @@ function irPara(view){
   });
   document.getElementById('viewTitle').textContent = titles[view][0];
   document.getElementById('viewSubtitle').textContent = titles[view][1];
+  document.getElementById('btnNovaVendaLabel').textContent = textoBotaoPrincipal[view];
   renderAll();
 }
 
@@ -260,7 +272,11 @@ function renderClientes(filtro=''){
         <td data-label="Total pago">${formatarMoeda(pago)}</td>
         <td data-label="Saldo devedor" style="color:${saldo>0.001?'var(--red)':'var(--green)'}; font-weight:700;">${formatarMoeda(saldo)}</td>
         <td data-label="Status">${status}</td>
-        <td data-label="Ações"><button class="icon-btn" data-ver-cliente="${c.id}" title="Ver encomendas">${icon('search')}</button></td>
+        <td data-label="Ações">
+          <button class="icon-btn" data-ver-cliente="${c.id}" title="Ver encomendas">${icon('search')}</button>
+          <button class="icon-btn" data-editar-cliente="${c.id}" title="Editar">${icon('edit')}</button>
+          <button class="icon-btn" data-excluir-cliente="${c.id}" title="Excluir">${icon('trash')}</button>
+        </td>
       </tr>`;
   });
 }
@@ -365,6 +381,7 @@ function renderVendas(){
           <td data-label="Status"><span class="badge ${badge}">${label}</span></td>
           <td data-label="Ações">
             ${st!=='pago' ? `<button class="icon-btn" data-pagar="${v.id}" title="Registrar pagamento">${icon('check-circle')}</button>` : ''}
+            <button class="icon-btn" data-editar-venda="${v.id}" title="Editar">${icon('edit')}</button>
             <button class="icon-btn" data-excluir-venda="${v.id}" title="Excluir">${icon('trash')}</button>
           </td>
         </tr>`;
@@ -403,7 +420,11 @@ function renderPendencias(){
         <td data-label="Telefone">${escapeHtml(d.cliente.telefone||'—')}</td>
         <td data-label="Encomendas pendentes">${d.qtd}</td>
         <td data-label="Valor devido" style="color:var(--red); font-weight:700;">${formatarMoeda(d.saldo)}</td>
-        <td data-label="Ações"><button class="secondary-btn" data-cobrar="${d.cliente.id}" data-mes="${filtroMes}">${icon('check-circle')} Registrar pagamento</button></td>
+        <td data-label="Ações">
+          <button class="secondary-btn" data-cobrar="${d.cliente.id}" data-mes="${filtroMes}">${icon('check-circle')} Registrar pagamento</button>
+          <button class="icon-btn" data-editar-cliente="${d.cliente.id}" title="Editar">${icon('edit')}</button>
+          <button class="icon-btn" data-excluir-cliente="${d.cliente.id}" title="Excluir">${icon('trash')}</button>
+        </td>
       </tr>`;
   });
 }
@@ -454,8 +475,10 @@ function escapeHtml(str){
 /* ============ Modal: Nova Venda ============ */
 
 const modalVenda = document.getElementById('modalVenda');
+const modalVendaTitulo = document.querySelector('#modalVenda .modal-header h3');
 const itensVendaEl = document.getElementById('itensVenda');
 let contadorItens = 0;
+let vendaEditandoId = null;
 
 function atualizarDatalistClientes(){
   const dl = document.getElementById('listaClientes');
@@ -468,16 +491,15 @@ function optionsProdutos(selectedId){
   ).join('');
 }
 
-function addLinhaItem(){
+function addLinhaItem(produtoIdInicial, qtdInicial){
   contadorItens++;
   const linhaId = 'item_'+contadorItens;
-  const primeiroProduto = dados.produtos[0];
   const div = document.createElement('div');
   div.className = 'item-linha';
   div.id = linhaId;
   div.innerHTML = `
-    <select class="sel-produto">${optionsProdutos()}</select>
-    <input type="number" class="inp-qtd" min="1" value="1">
+    <select class="sel-produto">${optionsProdutos(produtoIdInicial)}</select>
+    <input type="number" class="inp-qtd" min="1" value="${qtdInicial||1}">
     <input type="text" class="inp-subtotal" disabled>
     <button type="button" class="item-remove">✕</button>
   `;
@@ -519,16 +541,41 @@ function atualizarTotalVenda(){
 document.getElementById('btnAddItem').addEventListener('click', addLinhaItem);
 
 function abrirModalVenda(){
+  vendaEditandoId = null;
+  modalVendaTitulo.textContent = 'Registrar encomenda';
   itensVendaEl.innerHTML = '';
   contadorItens = 0;
   document.getElementById('formVenda').reset();
+  document.getElementById('inputClienteNome').disabled = false;
   document.getElementById('inputData').value = new Date().toISOString().slice(0,10);
   addLinhaItem();
   atualizarTotalVenda();
   modalVenda.classList.remove('hidden');
 }
 
-document.getElementById('btnNovaVenda').addEventListener('click', abrirModalVenda);
+function abrirModalVendaEdicao(venda){
+  vendaEditandoId = venda.id;
+  modalVendaTitulo.textContent = 'Editar encomenda';
+  const cliente = dados.clientes.find(c=>c.id===venda.clienteId);
+  itensVendaEl.innerHTML = '';
+  contadorItens = 0;
+  document.getElementById('formVenda').reset();
+  document.getElementById('inputClienteNome').value = cliente ? cliente.nome : '';
+  document.getElementById('inputClienteNome').disabled = true;
+  document.getElementById('inputClienteTelefone').value = cliente ? cliente.telefone : '';
+  document.getElementById('inputData').value = venda.data;
+  venda.itens.forEach(i=> addLinhaItem(i.produtoId, i.qtd));
+  atualizarTotalVenda();
+  document.getElementById('inputValorPago').value = venda.pago||0;
+  document.getElementById('inputObs').value = venda.obs||'';
+  modalVenda.classList.remove('hidden');
+}
+
+document.getElementById('btnNovaVenda').addEventListener('click', ()=>{
+  if(viewAtual==='clientes'){ abrirModalClienteNovo(); }
+  else if(viewAtual==='produtos'){ abrirModalProdutoNovo(); }
+  else{ abrirModalVenda(); }
+});
 
 document.getElementById('formVenda').addEventListener('submit', async (e)=>{
   e.preventDefault();
@@ -570,17 +617,28 @@ document.getElementById('formVenda').addEventListener('submit', async (e)=>{
       }
     }
 
-    const { data:novaVenda, error:errVenda } = await sb.from('vendas').insert({
-      cliente_id: clienteId, data, itens, pago: valorPago, obs: obs||null, criado_em: Date.now()
-    }).select().single();
-    if(errVenda) throw errVenda;
+    if(vendaEditandoId){
+      const { error: errUpdate } = await sb.from('vendas')
+        .update({ data, itens, pago: valorPago, obs: obs||null })
+        .eq('id', vendaEditandoId);
+      if(errUpdate) throw errUpdate;
 
-    dados.vendas.push({
-      id: novaVenda.id, clienteId, data, itens, pago: valorPago, obs, criadoEm: Number(novaVenda.criado_em)
-    });
+      const v = dados.vendas.find(v=>v.id===vendaEditandoId);
+      if(v){ v.data = data; v.itens = itens; v.pago = valorPago; v.obs = obs; }
+      toast('Encomenda atualizada!');
+    }else{
+      const { data:novaVenda, error:errVenda } = await sb.from('vendas').insert({
+        cliente_id: clienteId, data, itens, pago: valorPago, obs: obs||null, criado_em: Date.now()
+      }).select().single();
+      if(errVenda) throw errVenda;
+
+      dados.vendas.push({
+        id: novaVenda.id, clienteId, data, itens, pago: valorPago, obs, criadoEm: Number(novaVenda.criado_em)
+      });
+      toast('Encomenda registrada com sucesso!');
+    }
 
     modalVenda.classList.add('hidden');
-    toast('Encomenda registrada com sucesso!');
     renderAll();
   }catch(err){
     console.error(err);
@@ -596,12 +654,14 @@ const modalProduto = document.getElementById('modalProduto');
 const modalProdutoTitulo = document.querySelector('#modalProduto .modal-header h3');
 let produtoEditandoId = null;
 
-document.getElementById('btnNovoProduto').addEventListener('click', ()=>{
+function abrirModalProdutoNovo(){
   produtoEditandoId = null;
   modalProdutoTitulo.textContent = 'Novo docinho';
   document.getElementById('formProduto').reset();
   modalProduto.classList.remove('hidden');
-});
+}
+
+document.getElementById('btnNovoProduto').addEventListener('click', abrirModalProdutoNovo);
 
 document.getElementById('formProduto').addEventListener('submit', async (e)=>{
   e.preventDefault();
@@ -626,6 +686,53 @@ document.getElementById('formProduto').addEventListener('submit', async (e)=>{
   }catch(err){
     console.error(err);
     toast('Erro ao salvar o docinho.');
+  }
+});
+
+/* ============ Modal: Cliente ============ */
+
+const modalCliente = document.getElementById('modalCliente');
+const modalClienteTitulo = document.querySelector('#modalCliente .modal-header h3');
+let clienteEditandoId = null;
+
+function abrirModalClienteNovo(){
+  clienteEditandoId = null;
+  modalClienteTitulo.textContent = 'Novo cliente';
+  document.getElementById('formCliente').reset();
+  modalCliente.classList.remove('hidden');
+}
+
+function abrirModalClienteEdicao(cliente){
+  clienteEditandoId = cliente.id;
+  modalClienteTitulo.textContent = 'Editar cliente';
+  document.getElementById('inputClienteEditNome').value = cliente.nome;
+  document.getElementById('inputClienteEditTelefone').value = cliente.telefone||'';
+  modalCliente.classList.remove('hidden');
+}
+
+document.getElementById('formCliente').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const nome = document.getElementById('inputClienteEditNome').value.trim();
+  const telefone = document.getElementById('inputClienteEditTelefone').value.trim();
+  if(!nome){ toast('Informe o nome do cliente.'); return; }
+  try{
+    if(clienteEditandoId){
+      const { data:atualizado, error } = await sb.from('clientes').update({ nome, telefone: telefone||null }).eq('id', clienteEditandoId).select().single();
+      if(error) throw error;
+      const c = dados.clientes.find(c=>c.id===clienteEditandoId);
+      if(c){ c.nome = atualizado.nome; c.telefone = atualizado.telefone||''; }
+      toast('Cliente atualizado!');
+    }else{
+      const { data:novo, error } = await sb.from('clientes').insert({ nome, telefone: telefone||null }).select().single();
+      if(error) throw error;
+      dados.clientes.push({ id:novo.id, nome:novo.nome, telefone:novo.telefone||'' });
+      toast('Cliente cadastrado!');
+    }
+    modalCliente.classList.add('hidden');
+    renderAll();
+  }catch(err){
+    console.error(err);
+    toast('Erro ao salvar o cliente.');
   }
 });
 
@@ -725,6 +832,11 @@ document.addEventListener('click', (e)=>{
   if(btnCobrar){
     abrirModalPagamento('cliente', btnCobrar.dataset.cobrar, btnCobrar.dataset.mes||'todos');
   }
+  const btnEditarVenda = e.target.closest('[data-editar-venda]');
+  if(btnEditarVenda){
+    const venda = dados.vendas.find(v=>v.id===btnEditarVenda.dataset.editarVenda);
+    if(venda) abrirModalVendaEdicao(venda);
+  }
   const btnExcluirVenda = e.target.closest('[data-excluir-venda]');
   if(btnExcluirVenda){
     const idVenda = btnExcluirVenda.dataset.excluirVenda;
@@ -764,6 +876,24 @@ document.addEventListener('click', (e)=>{
   if(btnVerCliente){
     document.getElementById('buscaVenda').value = dados.clientes.find(c=>c.id===btnVerCliente.dataset.verCliente)?.nome || '';
     irPara('vendas');
+  }
+  const btnEditarCliente = e.target.closest('[data-editar-cliente]');
+  if(btnEditarCliente){
+    const cliente = dados.clientes.find(c=>c.id===btnEditarCliente.dataset.editarCliente);
+    if(cliente) abrirModalClienteEdicao(cliente);
+  }
+  const btnExcluirCliente = e.target.closest('[data-excluir-cliente]');
+  if(btnExcluirCliente){
+    const idCliente = btnExcluirCliente.dataset.excluirCliente;
+    if(confirm('Excluir este cliente? Todas as encomendas dele também serão excluídas. Essa ação não pode ser desfeita.')){
+      sb.from('clientes').delete().eq('id', idCliente).then(({error})=>{
+        if(error){ console.error(error); toast('Erro ao excluir o cliente.'); return; }
+        dados.clientes = dados.clientes.filter(c=>c.id!==idCliente);
+        dados.vendas = dados.vendas.filter(v=>v.clienteId!==idCliente);
+        toast('Cliente excluído.');
+        renderAll();
+      });
+    }
   }
 });
 

@@ -106,7 +106,7 @@
         <p id="viewSubtitle" class="muted">Resumo das vendas de docinhos da Doces da Yanka</p>
         <span id="syncStatus" class="sync-pill sync-syncing"><span class="dot"></span> Sincronizando...</span>
       </div>
-      <button class="primary-btn" id="btnNovaVenda"><svg class="icon"><use href="#icon-plus-circle"></use></svg> Nova encomenda</button>
+      <button class="primary-btn" id="btnNovaVenda"><svg class="icon"><use href="#icon-plus-circle"></use></svg> <span id="btnNovaVendaLabel">Nova encomenda</span></button>
     </header>
 
     <!-- DASHBOARD -->
@@ -357,6 +357,30 @@
       <div class="modal-actions">
         <button type="button" class="secondary-btn" data-close>Cancelar</button>
         <button type="submit" class="primary-btn">Salvar docinho</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR CLIENTE -->
+<div class="modal-overlay hidden" id="modalCliente">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Editar cliente</h3>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <form id="formCliente" class="modal-body">
+      <div class="form-row">
+        <label>Nome</label>
+        <input type="text" id="inputClienteEditNome" required>
+      </div>
+      <div class="form-row">
+        <label>Telefone</label>
+        <input type="text" id="inputClienteEditTelefone" placeholder="(xx) xxxxx-xxxx">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" data-close>Cancelar</button>
+        <button type="submit" class="primary-btn">Salvar cliente</button>
       </div>
     </form>
   </div>
