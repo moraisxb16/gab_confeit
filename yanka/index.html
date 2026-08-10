@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doces da Yanka · Painel de Gestão</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧁</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- Sprite de ícones de contorno (usado em toda a interface) -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="icon-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="14" width="7" height="7" rx="1.3"/><rect x="3" y="14" width="7" height="7" rx="1.3"/>
+  </symbol>
+  <symbol id="icon-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </symbol>
+  <symbol id="icon-bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
+  </symbol>
+  <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </symbol>
+  <symbol id="icon-cookie" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="15.5" cy="9.5" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="9.5" cy="14.5" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="14.5" cy="15" r="1" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="icon-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+  </symbol>
+  <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+  </symbol>
+  <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </symbol>
+  <symbol id="icon-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11"/>
+  </symbol>
+  <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+  </symbol>
+  <symbol id="icon-plus-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+  </symbol>
+  <symbol id="icon-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+  </symbol>
+  <symbol id="icon-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </symbol>
+</svg>
+
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">Y</div>
+      <div class="brand-text">
+        <strong>Doces<br>da Yanka</strong>
+        <small>Doces Artesanais</small>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item active" data-view="dashboard">
+        <svg class="icon nav-ico"><use href="#icon-grid"></use></svg> Painel
+      </button>
+      <button class="nav-item" data-view="clientes">
+        <svg class="icon nav-ico"><use href="#icon-users"></use></svg> Clientes
+      </button>
+      <button class="nav-item" data-view="vendas">
+        <svg class="icon nav-ico"><use href="#icon-bag"></use></svg> Encomendas
+      </button>
+      <button class="nav-item" data-view="pendencias">
+        <svg class="icon nav-ico"><use href="#icon-clock"></use></svg> A Receber
+      </button>
+      <button class="nav-item" data-view="produtos">
+        <svg class="icon nav-ico"><use href="#icon-cookie"></use></svg> Docinhos
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button id="btnExport" class="ghost-btn"><svg class="icon"><use href="#icon-download"></use></svg> Exportar backup</button>
+      <button id="btnImport" class="ghost-btn"><svg class="icon"><use href="#icon-upload"></use></svg> Importar backup</button>
+      <input type="file" id="fileImport" accept=".json" hidden>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <header class="topbar">
+      <div>
+        <h1 id="viewTitle">Painel Geral</h1>
+        <p id="viewSubtitle" class="muted">Resumo das vendas de docinhos da Doces da Yanka</p>
+        <span id="syncStatus" class="sync-pill sync-syncing"><span class="dot"></span> Sincronizando...</span>
+      </div>
+      <button class="primary-btn" id="btnNovaVenda"><svg class="icon"><use href="#icon-plus-circle"></use></svg> Nova encomenda</button>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view">
+      <div class="cards-grid">
+        <div class="stat-card stat-vendido">
+          <div class="stat-top">
+            <span class="stat-label">Total Vendido</span>
+            <span class="stat-icon"><svg class="icon"><use href="#icon-bag"></use></svg></span>
+          </div>
+          <span class="stat-value" id="statTotalVendido">R$ 0,00</span>
+          <span class="stat-hint">valor bruto de todas as encomendas</span>
+        </div>
+        <div class="stat-card stat-recebido">
+          <div class="stat-top">
+            <span class="stat-label">Total Recebido</span>
+            <span class="stat-icon"><svg class="icon"><use href="#icon-check-circle"></use></svg></span>
+          </div>
+          <span class="stat-value" id="statTotalRecebido">R$ 0,00</span>
+          <span class="stat-hint">já pago pelos clientes</span>
+        </div>
+        <div class="stat-card stat-receber">
+          <div class="stat-top">
+            <span class="stat-label">A Receber</span>
+            <span class="stat-icon"><svg class="icon"><use href="#icon-clock"></use></svg></span>
+          </div>
+          <span class="stat-value" id="statAReceber">R$ 0,00</span>
+          <span class="stat-hint">pendente de pagamento</span>
+        </div>
+        <div class="stat-card stat-clientes">
+          <div class="stat-top">
+            <span class="stat-label">Clientes Ativos</span>
+            <span class="stat-icon"><svg class="icon"><use href="#icon-users"></use></svg></span>
+          </div>
+          <span class="stat-value" id="statClientes">0</span>
+          <span class="stat-hint">com pelo menos 1 encomenda</span>
+        </div>
+      </div>
+
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Maiores devedores</h3>
+          </div>
+          <div id="topDevedores" class="list"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Últimas encomendas</h3>
+          </div>
+          <div id="ultimasVendas" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLIENTES -->
+    <section id="view-clientes" class="view hidden">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Clientes cadastrados</h3>
+          <input type="text" id="buscaCliente" class="search-input" placeholder="Buscar cliente...">
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaClientes">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>Total comprado</th>
+                <th>Total pago</th>
+                <th>Saldo devedor</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="empty-state hidden" id="clientesEmpty">Nenhum cliente cadastrado ainda. Registre sua primeira encomenda!</div>
+      </div>
+    </section>
+
+    <!-- VENDAS / ENCOMENDAS -->
+    <section id="view-vendas" class="view hidden">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Histórico de encomendas</h3>
+          <div class="header-actions">
+            <select id="filtroMesVenda" class="select-input">
+              <option value="todos">Todos os meses</option>
+            </select>
+            <select id="filtroStatusVenda" class="select-input">
+              <option value="todos">Todos os status</option>
+              <option value="pago">Pagas</option>
+              <option value="pendente">Pendentes</option>
+              <option value="parcial">Parciais</option>
+            </select>
+            <input type="text" id="buscaVenda" class="search-input" placeholder="Buscar por cliente...">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaVendas">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Docinho(s)</th>
+                <th>Qtd</th>
+                <th>Valor</th>
+                <th>Pago</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="empty-state hidden" id="vendasEmpty">Nenhuma encomenda registrada ainda.</div>
+      </div>
+    </section>
+
+    <!-- PENDÊNCIAS -->
+    <section id="view-pendencias" class="view hidden">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Valores a receber</h3>
+          <div class="header-actions">
+            <select id="filtroMesPendencias" class="select-input">
+              <option value="todos">Todos os meses</option>
+            </select>
+            <span class="pill pill-red" id="totalPendenciasPill">R$ 0,00 em aberto</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaPendencias">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Telefone</th>
+                <th>Qtd. encomendas pendentes</th>
+                <th>Valor devido</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="empty-state hidden" id="pendenciasEmpty">
+          <svg class="icon icon-lg"><use href="#icon-check-circle"></use></svg>
+          Nenhuma pendência! Todos os clientes estão em dia.
+        </div>
+      </div>
+    </section>
+
+    <!-- PRODUTOS / DOCINHOS -->
+    <section id="view-produtos" class="view hidden">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Catálogo de docinhos</h3>
+          <button class="secondary-btn" id="btnNovoProduto"><svg class="icon"><use href="#icon-plus-circle"></use></svg> Novo docinho</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaProdutos">
+            <thead>
+              <tr>
+                <th>Docinho</th>
+                <th>Preço unitário</th>
+                <th>Unidades vendidas</th>
+                <th>Total gerado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="empty-state hidden" id="produtosEmpty">Nenhum docinho cadastrado. Cadastre seu catálogo!</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL: NOVA ENCOMENDA -->
+<div class="modal-overlay hidden" id="modalVenda">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Registrar encomenda</h3>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <form id="formVenda" class="modal-body">
+      <div class="form-row">
+        <label>Cliente</label>
+        <input type="text" id="inputClienteNome" list="listaClientes" placeholder="Nome do cliente" required autocomplete="off">
+        <datalist id="listaClientes"></datalist>
+      </div>
+      <div class="form-row">
+        <label>Telefone (opcional)</label>
+        <input type="text" id="inputClienteTelefone" placeholder="(xx) xxxxx-xxxx">
+      </div>
+      <div class="form-row">
+        <label>Data da encomenda</label>
+        <input type="date" id="inputData" required>
+      </div>
+
+      <div id="itensVenda"></div>
+      <button type="button" class="ghost-btn" id="btnAddItem"><svg class="icon"><use href="#icon-plus-circle"></use></svg> Adicionar docinho</button>
+
+      <div class="form-row total-row">
+        <label>Valor total</label>
+        <span id="valorTotalVenda">R$ 0,00</span>
+      </div>
+
+      <div class="form-row">
+        <label>Valor já pago agora</label>
+        <input type="number" id="inputValorPago" min="0" step="0.01" value="0">
+      </div>
+
+      <div class="form-row">
+        <label>Observações</label>
+        <textarea id="inputObs" rows="2" placeholder="Ex: retirar na sexta-feira"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" data-close>Cancelar</button>
+        <button type="submit" class="primary-btn">Salvar encomenda</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: NOVO DOCINHO -->
+<div class="modal-overlay hidden" id="modalProduto">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Novo docinho</h3>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <form id="formProduto" class="modal-body">
+      <div class="form-row">
+        <label>Nome do docinho</label>
+        <input type="text" id="inputProdutoNome" placeholder="Ex: Brigadeiro" required>
+      </div>
+      <div class="form-row">
+        <label>Preço unitário (R$)</label>
+        <input type="number" id="inputProdutoPreco" min="0" step="0.01" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" data-close>Cancelar</button>
+        <button type="submit" class="primary-btn">Salvar docinho</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: PAGAMENTO -->
+<div class="modal-overlay hidden" id="modalPagamento">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Registrar pagamento</h3>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <form id="formPagamento" class="modal-body">
+      <p class="muted" id="pagamentoInfo"></p>
+      <div class="form-row">
+        <label>Valor recebido (R$)</label>
+        <input type="number" id="inputPagamentoValor" min="0" step="0.01" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" data-close>Cancelar</button>
+        <button type="submit" class="primary-btn">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
