@@ -1,0 +1,19 @@
+name: Supabase keep-alive
+
+# Faz uma leitura diária no banco para o Supabase (plano grátis) não pausar o projeto por inatividade.
+on:
+  schedule:
+    - cron: '0 12 * * *'   # todo dia às 09:00 (Brasília)
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ler 1 registro de clientes
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://ixbanonhvcwjvnkclaeb.supabase.co/rest/v1/clientes?select=id&limit=1" \
+            -H "apikey: sb_publishable_DKhObLXkviatUEUZNq5GGA_ftrDWk71")
+          echo "HTTP $code"
+          test "$code" = "200"
